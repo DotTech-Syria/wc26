@@ -32,10 +32,13 @@ const FIREBASE_CONFIG = {
 };
 
 let app, auth, db, currentUser = null;
+let currentUserIsAdmin = false;
 try {
   const cachedUser = localStorage.getItem("wc26-user");
   if (cachedUser) {
-    currentUser = JSON.parse(cachedUser);
+    const parsed = JSON.parse(cachedUser);
+    currentUser = parsed;
+    currentUserIsAdmin = parsed.isAdmin === true;
   }
 } catch (e) {
   console.warn("[WC26] Failed to load cached user from localStorage:", e);
@@ -500,15 +503,19 @@ function renderBracketView() {
 }
 
 let adminAllUsersData = {};
-let isAdminUser = false;
 
 function checkAdminStatus() {
   const navAdminBtn = $("navAdminBtn");
   if (!navAdminBtn) return;
-  if (currentUser && (isAdminUser || currentUser.email === "admin@wc26.com" || currentUser.email?.startsWith("admin") || localStorage.getItem("wc26-admin-mode") === "true")) {
+  const isAdmin = currentUser && (currentUserIsAdmin || currentUser.email === "admin@wc26.com" || currentUser.email?.startsWith("admin") || localStorage.getItem("wc26-admin-mode") === "true");
+  if (isAdmin) {
     navAdminBtn.classList.remove("hidden");
   } else {
     navAdminBtn.classList.add("hidden");
+    const viewAdmin = $("view-admin");
+    if (viewAdmin && viewAdmin.classList.contains("active")) {
+      switchView("predictions");
+    }
   }
 }
 
@@ -546,9 +553,16 @@ function loadAdminUserPredictions(uid) {
   
   const userData = adminAllUsersData[uid];
   const userPreds = userData.matches || {};
+  const isTargetAdmin = userData.isAdmin === true;
   
   container.innerHTML = `
-    <h3 style="margin-bottom: 16px; font-family:'Outfit'; color:var(--md-primary); font-size:1.1rem;">Editing predictions for: ${userData.displayName || "Anonymous User"}</h3>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; flex-wrap:wrap; gap:12px;">
+      <h3 style="font-family:'Outfit'; color:var(--md-primary); font-size:1.1rem; margin:0;">Editing: ${userData.displayName || "Anonymous User"}</h3>
+      <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; cursor:pointer; background:var(--md-surface-variant); padding:6px 12px; border-radius:16px;">
+        <input type="checkbox" id="adminUserIsAdminCheck" ${isTargetAdmin ? "checked" : ""} style="width:14px; height:14px; margin:0;" />
+        <span>Is Admin</span>
+      </label>
+    </div>
     <div style="display:flex; flex-direction:column; gap:12px; max-height: 400px; overflow-y: auto; padding-right: 4px; margin-bottom: 16px;">
       ${matches.map(m => {
         const home = teamMap[m.home] || { name: m.home, flag: "🏳️" };
@@ -590,26 +604,32 @@ function loadAdminUserPredictions(uid) {
 
   $("adminSaveBtn").addEventListener("click", async () => {
     const updatedPreds = { ...userPreds };
+    
+    // 1. Gather all inputs into updatedPreds
     container.querySelectorAll(".admin-score-input").forEach(inp => {
       const matchId = inp.dataset.match;
       const side = inp.dataset.side;
       const val = inp.value.trim();
       
-      if (!updatedPreds[matchId]) updatedPreds[matchId] = {};
-      
       if (val === "") {
-        delete updatedPreds[matchId][side === "home" ? "homeScore" : "awayScore"];
+        if (updatedPreds[matchId]) {
+          delete updatedPreds[matchId][side === "home" ? "homeScore" : "awayScore"];
+        }
       } else {
+        if (!updatedPreds[matchId]) updatedPreds[matchId] = {};
         updatedPreds[matchId][side === "home" ? "homeScore" : "awayScore"] = parseInt(val);
       }
-      
+    });
+
+    // 2. Clean up incomplete predictions and derive winners
+    for (const matchId of Object.keys(updatedPreds)) {
       const p = updatedPreds[matchId];
-      if (p.homeScore !== undefined && p.awayScore !== undefined) {
+      if (p && p.homeScore !== undefined && p.homeScore !== null && p.awayScore !== undefined && p.awayScore !== null) {
         p.winner = deriveWinner(p.homeScore, p.awayScore);
       } else {
         delete updatedPreds[matchId];
       }
-    });
+    }
 
     try {
       const ref = doc(db, "predictions", uid);
@@ -621,10 +641,13 @@ function loadAdminUserPredictions(uid) {
         total += calculatePoints(pred, actual);
       }
 
+      const targetIsAdmin = $("adminUserIsAdminCheck") ? $("adminUserIsAdminCheck").checked : false;
+
       await setDoc(ref, {
         matches: updatedPreds,
         totalPoints: total,
         predCount: Object.keys(updatedPreds).length,
+        isAdmin: targetIsAdmin,
       }, { merge: true });
 
       showToast("Player predictions updated successfully!", "success");
@@ -803,14 +826,24 @@ let leaderboardUnsub = null;
 ═══════════════════════════════════════════════════════ */
 async function handleAuthChange(user) {
   currentUser = user;
-  isAdminUser = false;
   if (user) {
+    try {
+      const cached = localStorage.getItem("wc26-user");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.uid === user.uid) {
+          currentUserIsAdmin = parsed.isAdmin === true;
+        }
+      }
+    } catch (e) {}
+
     try {
       localStorage.setItem("wc26-user", JSON.stringify({
         displayName: user.displayName,
         email: user.email,
         uid: user.uid,
-        photoURL: user.photoURL
+        photoURL: user.photoURL,
+        isAdmin: currentUserIsAdmin
       }));
     } catch (e) {
       console.warn("[WC26] Failed to cache user info:", e);
@@ -822,6 +855,7 @@ async function handleAuthChange(user) {
     updateHeroUsers();
   } else {
     localStorage.removeItem("wc26-user");
+    currentUserIsAdmin = false;
     updateAuthUI();
     checkAdminStatus();
   }
@@ -915,15 +949,38 @@ async function loadUserPredictions() {
       predictions = data.matches || {};
       specials = data.specials || { champion: "", runnerUp: "", topScorer: "" };
       bracketPicks = data.bracket || JSON.parse(localStorage.getItem("wc26-bracket")) || {};
-      isAdminUser = data.isAdmin === true;
+      
+      currentUserIsAdmin = data.isAdmin === true;
+      try {
+        const cached = localStorage.getItem("wc26-user");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.isAdmin = currentUserIsAdmin;
+          localStorage.setItem("wc26-user", JSON.stringify(parsed));
+        }
+      } catch (err) {}
       checkAdminStatus();
+
       applySpecialsToUI();
       renderPredictions();
       updatePointsBadge();
       renderStandingsView();
       renderBracketView();
+    } else {
+      currentUserIsAdmin = false;
+      try {
+        const cached = localStorage.getItem("wc26-user");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.isAdmin = false;
+          localStorage.setItem("wc26-user", JSON.stringify(parsed));
+        }
+      } catch (err) {}
+      checkAdminStatus();
     }
-  } catch (e) { console.error("[WC26] Load predictions:", e); }
+  } catch (e) { 
+    console.error("[WC26] Load predictions:", e); 
+  }
 }
 
 async function savePrediction(matchId, data) {
