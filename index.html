@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DotTech WC26 — World Cup 2026 Predictor</title>
+  <meta name="description"
+    content="Predict World Cup 2026 matches, compete on the global leaderboard, and track your score in real time." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="shortcut icon" href="logo.png" type="image/x-icon">
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════
+       TOP APP BAR
+  ══════════════════════════════════════════ -->
+  <header class="top-app-bar" id="topAppBar">
+    <div class="app-bar-inner">
+      <div class="app-bar-brand">
+        <div class="brand-icon">⚽</div>
+        <div class="brand-text">
+          <span class="brand-title">WC26 Predictor</span>
+          <span class="brand-sub">Created by Salem Makoukji</span>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <span class="material-icons-round">light_mode</span>
+        </button>
+        <button class="auth-chip" id="authBtn">
+          <span class="material-icons-round">account_circle</span>
+          <span id="authLabel">Sign In</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════
+       HERO BANNER
+  ══════════════════════════════════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">🏆 FIFA World Cup 2026™</div>
+      <h1 class="hero-title">Predict.<br />Compete.<br /><em>Win.</em></h1>
+      <p class="hero-desc">Make match predictions, earn points with every correct call, and climb the global leaderboard
+        across 104 epic games.</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><span class="stat-num" id="heroMatches">104</span><span class="stat-label">Matches</span>
+        </div>
+        <div class="hero-stat"><span class="stat-num" id="heroTeams">48</span><span class="stat-label">Teams</span>
+        </div>
+        <div class="hero-stat"><span class="stat-num" id="heroUsers">—</span><span class="stat-label">Predictors</span>
+        </div>
+      </div>
+      <button class="btn-primary hero-cta" id="heroCta">
+        <span class="material-icons-round">sports_soccer</span>
+        Start Predicting
+      </button>
+    </div>
+    <div class="hero-trophy">🏆</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       BOTTOM NAVIGATION
+  ══════════════════════════════════════════ -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-view="dashboard">
+      <span class="material-icons-round">dashboard</span>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" data-view="predictions">
+      <span class="material-icons-round">edit_note</span>
+      <span>Predictions</span>
+    </button>
+    <button class="nav-item" data-view="standings">
+      <span class="material-icons-round">table_chart</span>
+      <span>Standings</span>
+    </button>
+    <button class="nav-item" data-view="bracket">
+      <span class="material-icons-round">account_tree</span>
+      <span>Bracket</span>
+    </button>
+    <button class="nav-item" data-view="leaderboard">
+      <span class="material-icons-round">leaderboard</span>
+      <span>Leaderboard</span>
+    </button>
+    <button class="nav-item" data-view="profile">
+      <span class="material-icons-round">person</span>
+      <span>Profile</span>
+    </button>
+    <button class="nav-item hidden" data-view="admin" id="navAdminBtn">
+      <span class="material-icons-round">admin_panel_settings</span>
+      <span>Admin</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       MAIN CONTENT AREA
+       ══════════════════════════════════════════ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ─── VIEW: DASHBOARD ─── -->
+    <section class="view active" id="view-dashboard">
+      <div class="view-header">
+        <h2 class="view-title">Match Schedule</h2>
+        <div class="view-actions">
+          <div class="filter-chips" id="filterChips">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="upcoming">Upcoming</button>
+            <button class="chip" data-filter="live">Live</button>
+            <button class="chip" data-filter="finished">Finished</button>
+          </div>
+          <button class="icon-btn" id="refreshBtn" title="Refresh matches">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading skeleton -->
+      <div class="skeleton-grid" id="matchSkeleton">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+
+      <!-- Match grid injected here -->
+      <div class="matches-grid" id="matchesGrid"></div>
+
+      <!-- Empty state -->
+      <div class="empty-state hidden" id="matchEmpty">
+        <span class="material-icons-round">sports_soccer</span>
+        <p>No matches found for this filter.</p>
+      </div>
+    </section>
+
+    <!-- ─── VIEW: PREDICTIONS ─── -->
+    <section class="view" id="view-predictions">
+      <div class="view-header">
+        <h2 class="view-title">My Predictions</h2>
+        <div class="points-badge" id="myPointsBadge">
+          <span class="material-icons-round">stars</span>
+          <span id="myPoints">0 pts</span>
+        </div>
+      </div>
+
+      <!-- Tournament Specials -->
+      <div class="specials-card" id="specialsCard">
+        <div class="specials-header">
+          <span class="material-icons-round">emoji_events</span>
+          <h3>Tournament Specials</h3>
+          <span class="specials-badge">+27 pts max</span>
+        </div>
+        <div class="specials-grid">
+          <div class="special-field">
+            <label class="field-label">🏆 World Cup Champion <em>(+10 pts)</em></label>
+            <select class="m3-select" id="pickChampion">
+              <option value="">— Select Team —</option>
+            </select>
+          </div>
+          <div class="special-field">
+            <label class="field-label">🥈 Runner-Up <em>(+7 pts)</em></label>
+            <select class="m3-select" id="pickRunnerUp">
+              <option value="">— Select Team —</option>
+            </select>
+          </div>
+          <div class="special-field">
+            <label class="field-label">⚽ Top Scorer <em>(+10 pts)</em></label>
+            <input class="m3-input" type="text" id="pickTopScorer" placeholder="Player name..." />
+          </div>
+        </div>
+        <button class="btn-primary save-specials-btn" id="saveSpecialsBtn">
+          <span class="material-icons-round">save</span>
+          Save Tournament Picks
+        </button>
+      </div>
+
+      <!-- Per-match predictions injected here -->
+      <div class="predictions-list" id="predictionsList">
+        <div class="auth-prompt" id="predAuthPrompt">
+          <span class="material-icons-round">lock</span>
+          <h3>Sign in to make predictions</h3>
+          <p>Your picks are saved securely and synced across devices.</p>
+          <button class="btn-primary" id="predSignInBtn">
+            <span class="material-icons-round">login</span>
+            Sign In with Google
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── VIEW: STANDINGS ─── -->
+    <section class="view" id="view-standings">
+      <div class="view-header">
+        <h2 class="view-title">Group Standings</h2>
+        <span class="live-dot-wrap"><span class="live-dot"></span> Live Simulator</span>
+      </div>
+      <div class="standings-grid" id="standingsGrid">
+        <!-- 12 group tables will be injected here -->
+      </div>
+    </section>
+
+    <!-- ─── VIEW: BRACKET ─── -->
+    <section class="view" id="view-bracket">
+      <div class="view-header" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+        <h2 class="view-title">Knockout Bracket</h2>
+        <p style="color: var(--md-on-surface-var); font-size: 0.875rem;">Predict the winners and click teams to advance
+          them to the next round!</p>
+      </div>
+      <div class="bracket-outer">
+        <div class="bracket-container" id="bracketContainer">
+          <!-- Dynamic bracket rounds -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── VIEW: LEADERBOARD ─── -->
+    <section class="view" id="view-leaderboard">
+      <div class="view-header">
+        <h2 class="view-title">Global Leaderboard</h2>
+        <span class="live-dot-wrap"><span class="live-dot"></span> Live</span>
+      </div>
+
+      <!-- Top 3 podium -->
+      <div class="podium" id="podium">
+        <div class="podium-slot rank-2" id="podium2">
+          <div class="podium-avatar">🥈</div>
+          <div class="podium-name">—</div>
+          <div class="podium-pts">— pts</div>
+          <div class="podium-block p2"></div>
+        </div>
+        <div class="podium-slot rank-1" id="podium1">
+          <div class="podium-crown">👑</div>
+          <div class="podium-avatar">🥇</div>
+          <div class="podium-name">—</div>
+          <div class="podium-pts">— pts</div>
+          <div class="podium-block p1"></div>
+        </div>
+        <div class="podium-slot rank-3" id="podium3">
+          <div class="podium-avatar">🥉</div>
+          <div class="podium-name">—</div>
+          <div class="podium-pts">— pts</div>
+          <div class="podium-block p3"></div>
+        </div>
+      </div>
+
+      <!-- Full leaderboard table -->
+      <div class="leaderboard-card">
+        <div class="lb-table-header">
+          <span>#</span><span>Player</span><span>Predictions</span><span>Points</span>
+        </div>
+        <div id="leaderboardList">
+          <div class="lb-loading">
+            <span class="material-icons-round spinning">refresh</span>
+            Loading leaderboard...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── VIEW: PROFILE ─── -->
+    <section class="view" id="view-profile">
+      <div class="view-header">
+        <h2 class="view-title">My Profile</h2>
+      </div>
+
+      <div class="profile-card" id="profileCard">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profileAvatar">?</div>
+          <div class="profile-info">
+            <div class="profile-name" id="profileName">Guest User</div>
+            <div class="profile-uid" id="profileUid">Not signed in</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon material-icons-round">stars</span>
+            <span class="stat-val" id="statTotal">0</span>
+            <span class="stat-lbl">Total Points</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon material-icons-round">check_circle</span>
+            <span class="stat-val" id="statCorrect">0</span>
+            <span class="stat-lbl">Correct Picks</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon material-icons-round">edit_note</span>
+            <span class="stat-val" id="statPredictions">0</span>
+            <span class="stat-lbl">Predictions</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon material-icons-round">leaderboard</span>
+            <span class="stat-val" id="statRank">#—</span>
+            <span class="stat-lbl">Global Rank</span>
+          </div>
+        </div>
+
+        <div class="profile-actions">
+          <button class="btn-primary" id="profileSignInBtn">
+            <span class="material-icons-round">login</span>
+            Sign In with Google
+          </button>
+          <button class="btn-outline hidden" id="profileSignOutBtn">
+            <span class="material-icons-round">logout</span>
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Scoring Guide -->
+      <div class="scoring-guide">
+        <div class="sg-header">
+          <span class="material-icons-round">info</span>
+          <h3>Scoring Guide</h3>
+        </div>
+        <div class="sg-list">
+          <div class="sg-row"><span class="sg-pts">4 pts</span><span>Correct team + exact score</span></div>
+          <div class="sg-row"><span class="sg-pts">2 pts</span><span>Correct winning team only</span></div>
+          <div class="sg-row"><span class="sg-pts">10 pts</span><span>World Cup Champion</span></div>
+          <div class="sg-row"><span class="sg-pts">7 pts</span><span>World Cup Runner-Up</span></div>
+          <div class="sg-row"><span class="sg-pts">3 pts</span><span>Best team per group</span></div>
+          <div class="sg-row"><span class="sg-pts">10 pts</span><span>Top Scorer</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── VIEW: ADMIN ─── -->
+    <section class="view" id="view-admin">
+      <div class="view-header">
+        <h2 class="view-title">Admin Panel</h2>
+      </div>
+      <div class="admin-card"
+        style="background:var(--md-surface); border-radius:var(--r-xl); padding:24px; box-shadow:var(--shadow-2); border:1px solid var(--md-outline-var); margin-bottom: 24px;">
+        <label class="field-label"
+          style="color:var(--md-on-surface); font-weight:700; margin-bottom:8px; display:block;">Select Player to
+          Edit</label>
+        <select class="m3-select" id="adminUserSelect"
+          style="margin-bottom:20px; background:var(--md-surface-variant); color:var(--md-on-surface); border-color:var(--md-outline);">
+          <option value="">— Select a Player —</option>
+        </select>
+
+        <div id="adminPredictionsContainer">
+          <div class="empty-state">
+            <span class="material-icons-round">people</span>
+            <p>Select a player above to load and edit their predictions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════
+       TOAST NOTIFICATION
+       ══════════════════════════════════════════ -->
+  <div class="toast" id="toast">
+    <span class="material-icons-round" id="toastIcon">check_circle</span>
+    <span id="toastMsg">Saved!</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PREDICTION MODAL
+       ══════════════════════════════════════════ -->
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <div class="modal-sheet" id="predictionModal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h3 id="modalTitle">Predict Match</h3>
+        <button class="icon-btn" id="modalClose">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-teams" id="modalTeams"></div>
+        <div class="modal-stats" id="modalStats"></div>
+        <div class="score-picker">
+          <div class="score-field">
+            <label id="scoreLabel1" class="score-team-label">Team A</label>
+            <div class="score-stepper">
+              <button class="stepper-btn" data-side="home" data-action="dec">−</button>
+              <span class="score-display" id="scoreHome">0</span>
+              <button class="stepper-btn" data-side="home" data-action="inc">+</button>
+            </div>
+          </div>
+          <div class="score-sep">:</div>
+          <div class="score-field">
+            <label id="scoreLabel2" class="score-team-label">Team B</label>
+            <div class="score-stepper">
+              <button class="stepper-btn" data-side="away" data-action="dec">−</button>
+              <span class="score-display" id="scoreAway">0</span>
+              <button class="stepper-btn" data-side="away" data-action="inc">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="winner-pick" id="winnerPick">
+          <label class="field-label">Predicted Winner</label>
+          <div class="winner-options" id="winnerOptions"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" id="modalCancel">Cancel</button>
+        <button class="btn-primary" id="modalSave">
+          <span class="material-icons-round">save</span>
+          Save Prediction
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK v10 via CDN -->
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
